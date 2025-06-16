@@ -1,0 +1,24 @@
+[Unit]
+Description=MongoDB Exporter
+After=network.target
+
+[Service]
+User=touadmin
+ExecStart=/usr/local/bin/mongodb_exporter \
+  --mongodb.uri="mongodb://exporter:xp06tEr@localhost:27017/admin" \
+  --compatible-mode \
+  --collect-all \
+  --collector.collstats \
+  --collector.dbstats \
+  --collector.topmetrics \
+  --collector.indexstats \
+  --web.listen-address=":9300"
+Restart=always
+RestartSec=5
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
