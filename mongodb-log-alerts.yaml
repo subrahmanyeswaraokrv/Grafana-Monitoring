@@ -1,0 +1,280 @@
+groups:
+- name: mongodb-alerts
+  rules:
+
+  ################################################################
+  # Exporter Availability
+  ################################################################
+
+  - alert: MongoDBExporterDown
+    expr: up{job="mongodb"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MongoDB exporter is down"
+      description: "Prometheus cannot scrape MongoDB exporter at {{ $labels.instance }}. It may have stopped or network/port is blocked."
+
+  ################################################################
+  # Connection Metrics
+  ################################################################
+
+  - alert: MongoConnectionsHigh
+    expr: mongodb_mongod_connections_current{job="mongodb"} > 2000
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of MongoDB connections"
+      description: "Current connections > 2000 (value = {{ $value }}) on instance {{ $labels.instance }}."
+
+  - alert: MongoConnectionsTooHigh
+    expr: mongodb_mongod_connections{job="mongodb"} > 1000
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "MongoDB connections are too high"
+      description: "MongoDB instance {{ $labels.instance }} has over 1000 connections. This may lead to connection exhaustion."
+
+  - alert: MongoConnectionsAvailableLow
+    expr: mongodb_mongod_connections_available < 50
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Low available connections in MongoDB"
+      description: "MongoDB instance {{ $labels.instance }} has less than 50 available connections remaining."
+
+  ################################################################
+  # Replication / Replica Set Health
+  ################################################################
+
+  - alert: MongoDBReplicationLagHigh
+    expr: mongodb_mongod_replset_member_replication_lag_seconds > 10
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High replication lag in MongoDB"
+      description: "Replica set member {{ $labels.instance }} is experiencing replication lag greater than 10 seconds."
+
+  - alert: MongoReplicaStateUnexpected
+    expr: mongodb_mongod_replset_member_state != 1 and mongodb_mongod_replset_member_state != 2
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MongoDB replica set member is not PRIMARY or SECONDARY"
+      description: "Replica set member {{ $labels.instance }} is in state {{ $value }}. It is neither PRIMARY (1) nor SECONDARY (2)."
+
+  - alert: MongoElectionActivity
+    expr: increase(mongodb_rs_election_metrics_step_up_cmd_called[10m]) > 0 or increase(mongodb_rs_election_metrics_priority_takeover_called[10m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Replica set election activity observed"
+      description: "An election or takeover command was issued in the past 10m on {{ $labels.instance }}."
+
+  - alert: MongoPrimarySteppedDown
+    expr: increase(mongodb_rs_election_metrics_step_downs[10m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Primary stepped down"
+      description: "Primary stepped down recently on instance {{ $labels.instance }}."
+
+  ################################################################
+  # Memory & Performance
+  ################################################################
+
+  - alert: MongoDBMemoryUsageHigh
+    expr: mongodb_mongod_mem_resident_megabytes > 2048
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "MongoDB memory usage is high"
+      description: "MongoDB instance {{ $labels.instance }} is using more than 2GB of resident memory."
+
+  - alert: MongoDBCursorsOpenTooHigh
+    expr: mongodb_mongod_metrics_cursor_open{state="total"} > 10000
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Too many open cursors in MongoDB"
+      description: "MongoDB instance {{ $labels.instance }} has more than 10,000 open cursors. This may lead to resource exhaustion."
+
+  - alert: MongoTooManyPageFaults
+    expr: rate(mongodb_mongod_extra_info_page_faults[1m]) > 100
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High rate of page faults in MongoDB"
+      description: "MongoDB instance {{ $labels.instance }} is experiencing a high rate of page faults ({{ $value }} faults per second)."
+
+  - alert: MongoSlowQueriesObserved
+    expr: increase(mongo_log_slow_query_total[5m]) > 5
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Multiple slow queries"
+      description: "More than 5 slow queries logged in last 5m on instance {{ $labels.instance }}."
+
+  ################################################################
+  # Storage & WiredTiger
+  ################################################################
+
+  - alert: MongoWiredTigerErrors
+    expr: increase(mongodb_ss_wt_cache_overflow_total[5m]) > 0 or increase(mongodb_ss_wt_transaction_general_log_write_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "WiredTiger storage engine errors"
+      description: "WiredTiger errors or high cache overflow / log writes detected."
+
+  - alert: MongoLockingProblems
+    expr: increase(mongodb_mongod_global_lock_current_queue_total[5m]) > 100
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Lock queue is growing"
+      description: "Global lock queue for MongoDB is high (>100) on instance {{ $labels.instance }}."
+
+  ################################################################
+  # Log-Derived Alerts (requires log pipeline)
+  ################################################################
+
+  - alert: MongoAuthFailuresHigh
+    expr: increase(mongo_log_auth_failed_total[5m]) > 5
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High authentication failures"
+      description: "Over 5 authentication failures in past 5m on {{ $labels.instance }}."
+
+  - alert: MongoUnauthorizedAccess
+    expr: increase(mongo_log_unauthorized_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Unauthorized access attempt detected"
+      description: "Unauthorized access logs seen on {{ $labels.instance }}."
+
+  - alert: MongoInvalidUserAttempts
+    expr: increase(mongo_log_user_notfound_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Login attempts with invalid user"
+      description: "Nonexistent user login attempts logged."
+
+  - alert: MongoSCRAMFailures
+    expr: increase(mongo_log_scram_failure_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "SCRAM authentication failures detected"
+      description: "SCRAM auth failures logged on {{ $labels.instance }}."
+
+  - alert: MongoNonTLSAttempts
+    expr: increase(mongo_log_non_tls_conn_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Non-TLS connection attempts"
+      description: "Clients attempted non-TLS connections to {{ $labels.instance }}."
+
+  - alert: MongoSSLHandshakeErrors
+    expr: increase(mongo_log_ssl_error_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "SSL/TLS handshake errors"
+      description: "SSL/TLS errors logged on {{ $labels.instance }}."
+
+  - alert: MongoCertExpiredEvents
+    expr: increase(mongo_log_cert_expired_total[1h]) > 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Certificate expiration logged"
+      description: "Certificate expired errors seen on {{ $labels.instance }} in last hour."
+
+  - alert: MongoSuspiciousIPLogin
+    expr: increase(mongo_log_login_from_unknown_ip_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Login from unknown IP"
+      description: "Suspicious client IP login logged on {{ $labels.instance }}."
+
+  - alert: MongoBackupRestoreErrors
+    expr: increase(mongo_log_backup_failed_total[1h]) > 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Backup/restore errors logged"
+      description: "Errors from backup or restore operations observed on {{ $labels.instance }}."
+
+  - alert: MongoWriteConcernFailures
+    expr: increase(mongo_log_write_concern_failed_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Write concern failures"
+      description: "WriteConcernFailed events logged, indicating durability issues."
+
+  - alert: MongoJournalErrors
+    expr: increase(mongo_log_journal_error_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Journaling failures"
+      description: "Journal commit or write-to-journal errors detected."
+
+  - alert: MongoDiskFullEvents
+    expr: increase(mongo_log_disk_full_total[10m]) > 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Disk full errors"
+      description: "Filesystem full or no space left events logged on {{ $labels.instance }}."
+
+  - alert: MongoLockErrorsLogged
+    expr: increase(mongo_log_lock_error_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Locking / deadlock errors logged"
+      description: "Lock or deadlock messages in logs for {{ $labels.instance }}."
+
+  - alert: MongoRejectedConnections
+    expr: increase(mongo_log_rejected_conn_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Rejected connections observed"
+      description: "Client connections rejected (auth/authorization) appear in logs for {{ $labels.instance }}."
+
