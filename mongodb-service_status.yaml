@@ -1,0 +1,21 @@
+groups:
+- name: mongodb-alerts
+  rules:
+  - alert: MongoDBExporterDown
+    expr: up{job="mongodb"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MongoDB Exporter not reachable"
+      description: "Prometheus cannot scrape the MongoDB exporter on {{ $labels.instance }}. The exporter process may be stopped or port 9216 might be blocked."
+
+  - alert: MongoDBDown
+    expr: mongodb_up == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MongoDB instance is down"
+      description: "MongoDB exporter reports that the MongoDB server on {{ $labels.instance }} is not reachable or refusing connections."
+
