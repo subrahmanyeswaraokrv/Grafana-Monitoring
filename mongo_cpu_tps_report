@@ -1,0 +1,27 @@
+
+https://chatgpt.com/share/6929a92f-8268-800f-8017-ed9675a7b3e3
+
+
+root@mongodb-02:/etc/systemd/system# sudo nano /etc/systemd/system/mongo-metrics-exporter.service
+root@mongodb-02:/etc/systemd/system# sudo vi /etc/systemd/system/mongo-metrics-exporter.service
+root@mongodb-02:/etc/systemd/system# sudo systemctl daemon-reload
+root@mongodb-02:/etc/systemd/system# sudo systemctl enable mongo-metrics-exporter
+Created symlink /etc/systemd/system/multi-user.target.wants/mongo-metrics-exporter.service → /etc/systemd/system/mongo-metrics-exporter.service.
+root@mongodb-02:/etc/systemd/system# sudo systemctl start mongo-metrics-exporter
+root@mongodb-02:/etc/systemd/system# sudo systemctl status mongo-metrics-exporter
+● mongo-metrics-exporter.service - MongoDB TPS CPU Latency Exporter
+     Loaded: loaded (/etc/systemd/system/mongo-metrics-exporter.service; enabled; vendor preset: enabled)
+     Active: active (running) since Fri 2025-11-28 19:21:58 IST; 7s ago
+   Main PID: 420842 (mongo_cpu_tps_r)
+      Tasks: 2 (limit: 38368)
+     Memory: 5.6M
+     CGroup: /system.slice/mongo-metrics-exporter.service
+             ├─420842 /bin/bash /mongo/scripts/mongo_cpu_tps_report_final.sh
+             └─420947 sleep 10
+
+Nov 28 19:21:58 mongodb-02 systemd[1]: Started MongoDB TPS CPU Latency Exporter.
+Nov 28 19:21:58 mongodb-02 mongo_cpu_tps_report_final.sh[420842]: Collecting MongoDB TPS + CPU (interval delta) + real latency...
+Nov 28 19:21:58 mongodb-02 mongo_cpu_tps_report_final.sh[420842]: Output: /var/lib/node_exporter/textfile_collector/mongo_ops.prom
+Nov 28 19:21:58 mongodb-02 mongo_cpu_tps_report_final.sh[420842]: Press Ctrl+C to stop.
+Nov 28 19:22:02 mongodb-02 mongo_cpu_tps_report_final.sh[420842]: 2025-11-28 19:21:59 | Inserts/s: 0 | Updates/s: 0 | Deletes/s: 0 | TotalOps/s: 0 | AvgLatency: 0.000ms | CPU: 0.21% | CPU/>
+lines 1-15/15 (END)
